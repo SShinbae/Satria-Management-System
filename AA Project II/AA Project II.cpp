@@ -11,6 +11,7 @@ using namespace std;
 struct Student {
     int id, age, roomFloor;
     string name, state, department, fees;
+
 };
 
 // Function prototypes
@@ -23,6 +24,7 @@ int linearSearch(const vector<Student>& students, int x);
 void displayStudents(const vector<Student>& students, int displayLimit);
 void merge(vector<Student>& students, int low, int mid, int high, int& swapCount);
 void mergeSort(vector<Student>& students, int low, int high, int& swapCount);
+double calculateAverageAge(const vector<Student>& students);
 string trim(const string& str);
 
 // Function implementations
@@ -134,6 +136,19 @@ void mergeSort(vector<Student>& students, int low, int high, int& swapCount) {
     }
 }
 
+double calculateAverageAge(const vector<Student>& students) {
+    if (students.empty()) {
+        return 0.0; // Return 0 if there are no students
+    }
+
+    int totalAge = 0;
+    for (const auto& student : students) {
+        totalAge += student.age;
+    }
+
+    return static_cast<double>(totalAge) / students.size();
+}
+
 int binarySearch(const Student students[], int l, int r, int x) {
     if (r >= l) {
         int mid = l + (r - l) / 2;
@@ -229,6 +244,7 @@ int main() {
         cout << "\nSatria Management System" << endl;
         cout << "1) Sorting" << endl;
         cout << "2) Search" << endl;
+        cout << "3) Additional Features" << endl;
         cout << "Enter choice: ";
         cin >> choice;
 
@@ -295,6 +311,24 @@ int main() {
             }
             break;
         }
+        case 3: {
+            int searchChoice;
+            cout << "Additional Features Menu" << endl;
+            cout << "1) Calculate Age" << endl;
+            cout << "2) Calculate Fees" << endl;
+            cout << "Enter choice: ";
+            cin >> searchChoice;
+
+            switch (searchChoice)
+            {
+            case 1: {
+                // Inside your main function, possibly at the end or wherever you find appropriate
+                double averageAge = calculateAverageAge(students);
+                cout << "Average age of students: " << averageAge << endl;
+                main();
+                break;
+            }
+            //case 2: 
         default:
             cout << "Exiting Satria Management System." << endl;
         }
