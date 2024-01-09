@@ -328,7 +328,13 @@ int main() {
                 main();
                 break;
             }
-            //case 2: 
+            case 2: {
+
+            }
+            default:
+                break;
+            }
+        }
         default:
             cout << "Exiting Satria Management System." << endl;
         }
