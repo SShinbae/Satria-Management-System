@@ -2,7 +2,9 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 #include <algorithm>
+#include <iomanip>
 
 using namespace std;
 
@@ -11,17 +13,19 @@ struct Student {
     string name, state, department, fees;
 };
 
-const int MAX_STUDENTS = 10000;  // Adjust the size according to your needs
-
 // Function prototypes
 void customSwap(Student& a, Student& b, int& swapCount);
-void quickSort(Student students[], int low, int high, int& swapCount);
-void loadStudents(const string& filename, Student students[], int& numStudents);
-int binarySearch(const Student students[], int l, int r, int x);
-int linearSearch(const Student students[], int n, int x);
-void displayStudents(const Student students[], int count);
+int partition(vector<Student>& students, int low, int high, int& swapCount);
+void quickSort(vector<Student>& students, int low, int high, int& swapCount);
+void loadStudents(const string& filename, vector<Student>& students);
+int binarySearch(const vector<Student>& students, int l, int r, int x);
+int linearSearch(const vector<Student>& students, int x);
+void displayStudents(const vector<Student>& students, int displayLimit);
+void merge(vector<Student>& students, int low, int mid, int high, int& swapCount);
+void mergeSort(vector<Student>& students, int low, int high, int& swapCount);
+string trim(const string& str);
 
-// Function to trim whitespace from the start and end of a string
+// Function implementations
 string trim(const string& str) {
     size_t first = str.find_first_not_of(" \t");
     if (first == string::npos) return "";
@@ -29,7 +33,7 @@ string trim(const string& str) {
     return str.substr(first, (last - first + 1));
 }
 
-int partition(Student students[], int low, int high, int& swapCount) {
+int partition(vector<Student>& students, int low, int high, int& swapCount) {
     int pivot = students[high].id;
     int i = low - 1;
 
@@ -43,12 +47,7 @@ int partition(Student students[], int low, int high, int& swapCount) {
     return i + 1;
 }
 
-void customSwap(Student& a, Student& b, int& swapCount) {
-    swap(a.id, b.id);
-    swapCount++;
-}
-
-void quickSort(Student students[], int low, int high, int& swapCount) {
+void quickSort(vector<Student>& students, int low, int high, int& swapCount) {
     if (low < high) {
         int pi = partition(students, low, high, swapCount);
         quickSort(students, low, pi - 1, swapCount);
@@ -56,7 +55,7 @@ void quickSort(Student students[], int low, int high, int& swapCount) {
     }
 }
 
-void loadStudents(const string& filename, Student students[], int& numStudents) {
+void loadStudents(const string& filename, vector<Student>& students) {
     ifstream ip(filename);
     if (!ip.is_open()) {
         cerr << "Error: File could not be opened" << '\n';
@@ -66,47 +65,45 @@ void loadStudents(const string& filename, Student students[], int& numStudents) 
     string line;
     getline(ip, line); // Skip the header if present
 
-    while (getline(ip, line) && numStudents < MAX_STUDENTS) {
+    while (getline(ip, line)) {
         stringstream ss(line);
+        Student tempStudent;
         string tempId, tempAge, tempRoomFloor;
 
         getline(ss, tempId, ',');
-        getline(ss, students[numStudents].name, ',');
+        getline(ss, tempStudent.name, ',');
         getline(ss, tempAge, ',');
-        getline(ss, students[numStudents].state, ',');
-        getline(ss, students[numStudents].department, ',');
+        getline(ss, tempStudent.state, ',');
+        getline(ss, tempStudent.department, ',');
         getline(ss, tempRoomFloor, ',');
-        getline(ss, students[numStudents].fees, '\n');
+        getline(ss, tempStudent.fees, '\n');
 
-        students[numStudents].id = stoi(trim(tempId));
-        students[numStudents].name = trim(students[numStudents].name);
-        students[numStudents].age = stoi(trim(tempAge));
-        students[numStudents].state = trim(students[numStudents].state);
-        students[numStudents].department = trim(students[numStudents].department);
-        students[numStudents].roomFloor = stoi(trim(tempRoomFloor));
-        students[numStudents].fees = trim(students[numStudents].fees);
+        tempStudent.id = stoi(trim(tempId));
+        tempStudent.age = stoi(trim(tempAge));
+        tempStudent.roomFloor = stoi(trim(tempRoomFloor));
+        tempStudent.name = trim(tempStudent.name);
+        tempStudent.state = trim(tempStudent.state);
+        tempStudent.department = trim(tempStudent.department);
+        tempStudent.fees = trim(tempStudent.fees);
 
-        numStudents++;
+        students.push_back(tempStudent); // Add the new student to the vector
     }
 
     ip.close();
 }
 
-void merge(Student students[], int low, int mid, int high, int& swapCount) {
+void merge(vector<Student>& students, int low, int mid, int high, int& swapCount) {
     int n1 = mid - low + 1;
     int n2 = high - mid;
 
-    Student* left = new Student[n1];
-    Student* right = new Student[n2];
+    vector<Student> left(n1), right(n2);
 
     for (int i = 0; i < n1; i++)
         left[i] = students[low + i];
     for (int j = 0; j < n2; j++)
         right[j] = students[mid + 1 + j];
 
-    int i = 0;
-    int j = 0;
-    int k = low;
+    int i = 0, j = 0, k = low;
 
     while (i < n1 && j < n2) {
         if (left[i].id <= right[j].id) {
@@ -114,7 +111,7 @@ void merge(Student students[], int low, int mid, int high, int& swapCount) {
         }
         else {
             students[k++] = right[j++];
-            swapCount += n1 - i;  // Increment swap count for every element moved from the left to the right
+            swapCount += n1 - i; // Counting swaps when elements are moved from left to right
         }
     }
 
@@ -124,12 +121,9 @@ void merge(Student students[], int low, int mid, int high, int& swapCount) {
     while (j < n2) {
         students[k++] = right[j++];
     }
-
-    delete[] left;
-    delete[] right;
 }
 
-void mergeSort(Student students[], int low, int high, int& swapCount) {
+void mergeSort(vector<Student>& students, int low, int high, int& swapCount) {
     if (low < high) {
         int mid = low + (high - low) / 2;
 
@@ -165,31 +159,70 @@ int linearSearch(const Student students[], int n, int x) {
     return -1;
 }
 
-void displayStudents(const Student students[], int count) {
-    const int fieldWidth = 20;  // Adjust the width according to your needs
+void customSwap(Student& a, Student& b, int& swapCount) {
+    swap(a, b);  // Swaps the entire Student objects
+    swapCount++;
+}
 
+int binarySearch(const vector<Student>& students, int l, int r, int x) {
+    while (l <= r) {
+        int mid = l + (r - l) / 2;
+        if (students[mid].id == x) {
+            return mid;
+        }
+        else if (students[mid].id < x) {
+            l = mid + 1;
+        }
+        else {
+            r = mid - 1;
+        }
+    }
+    return -1;
+}
+
+int linearSearch(const vector<Student>& students, int x) {
+    for (int i = 0; i < students.size(); ++i) {
+        if (students[i].id == x) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void displayStudents(const vector<Student>& students, int displayLimit) {
+
+
+   
+    const int fieldWidth = 20;
     cout << "------------------------------------------------------------------------------------------------------------------------------------" << endl;
     cout << "ID" << string(fieldWidth - 2, ' ') << "|Name" << string(fieldWidth - 4, ' ')
         << "|Age" << string(fieldWidth - 2, ' ') << "|State" << string(fieldWidth - 6, ' ')
         << "|Department" << string(fieldWidth - 10, ' ') << "|Room Floor" << string(fieldWidth - 10, ' ')
         << "|Fees" << string(fieldWidth - 1, ' ') << "|" << endl;
     cout << "-----------------------------------------------------------------------------------------------------------------" << endl;
-    for (int i = 0; i < count; ++i) {
-        cout << students[i].id << string(fieldWidth - to_string(students[i].id).length(), ' ')
-            << "|" << students[i].name << string(fieldWidth - students[i].name.length(), ' ')
-            << "|" << students[i].age << string(fieldWidth - to_string(students[i].age).length(), ' ')
-            << "|" << students[i].state << string(fieldWidth - students[i].state.length(), ' ')
-            << "|" << students[i].department << string(fieldWidth - students[i].department.length(), ' ')
-            << "|" << students[i].roomFloor << string(fieldWidth - to_string(students[i].roomFloor).length(), ' ')
-            << "|" << students[i].fees << string(fieldWidth - students[i].fees.length(), ' ') << "|" << endl;
+    int count = 0;
+    for (const auto& student : students) {
+        
+       if (count >= displayLimit) break;
+
+        cout << student.id << string(fieldWidth - to_string(student.id).length(), ' ')
+            << "|" << student.name << string(fieldWidth - student.name.length(), ' ')
+            << "|" << student.age << string(fieldWidth - to_string(student.age).length(), ' ')
+            << "|" << student.state << string(fieldWidth - student.state.length(), ' ')
+            << "|" << student.department << string(fieldWidth - student.department.length(), ' ')
+            << "|" << student.roomFloor << string(fieldWidth - to_string(student.roomFloor).length(), ' ')
+            << "|" << student.fees << string(fieldWidth - student.fees.length(), ' ') << "|" << endl;
+
+        count++;
     }
     cout << "-----------------------------------------------------------------------------------------------------------------" << endl;
 }
 
 int main() {
-    Student students[MAX_STUDENTS];
+    vector<Student> students;
+    loadStudents("output2.csv", students);
+    int swapCount = 0;
     int numStudents = 0;
-    int swapCount = 0;  // Global variable to track total swaps
 
     int choice;
     do {
@@ -201,10 +234,6 @@ int main() {
 
         switch (choice) {
         case 1: {
-            if (numStudents == 0) {
-                loadStudents("output2.csv", students, numStudents);
-            }
-
             int sortChoice;
             cout << "Sorting Menu" << endl;
             cout << "1) Quick Sort" << endl;
@@ -212,78 +241,60 @@ int main() {
             cout << "Enter choice: ";
             cin >> sortChoice;
 
-            swapCount = 0;  // Reset swap count
-
+            swapCount = 0; // Reset swap count before sorting
             switch (sortChoice) {
             case 1:
                 cout << "\nStudents sorted using Quick Sort!" << endl;
-                quickSort(students, 0, numStudents - 1, swapCount);
-                displayStudents(students, min(100, numStudents));
+                quickSort(students, 0, students.size() - 1, swapCount); // Pass swapCount here
+                displayStudents(students, min(100, static_cast<int>(students.size())));
                 cout << "Total swaps: " << swapCount << endl;
+                break;
+
                 break;
             case 2:
                 cout << "\nStudents sorted using Merge Sort!" << endl;
-                mergeSort(students, 0, numStudents - 1, swapCount);
-                displayStudents(students, min(100, numStudents));
+                mergeSort(students, 0, students.size() - 1, swapCount);
+                displayStudents(students, min(100, static_cast<int>(students.size())));
                 cout << "Total swaps: " << swapCount << endl;
                 break;
             default:
                 cout << "Invalid choice. Returning to the main menu." << endl;
             }
-        } break;
+            break;
+        }
         case 2: {
-            if (numStudents == 0) {
-                loadStudents("output2.csv", students, numStudents); // Load students from file
-            }
-
             int searchChoice;
-            string name;
             cout << "Search Menu" << endl;
             cout << "1) Binary Search" << endl;
             cout << "2) Linear Search" << endl;
             cout << "Enter choice: ";
             cin >> searchChoice;
 
-            switch (searchChoice) {
-            case 1: {
-                cout << "Enter ID to search: ";
-                int idToSearch;
-                cin >> idToSearch;
+            cout << "Enter ID to search: ";
+            int idToSearch;
+            cin >> idToSearch;
 
-                int index = binarySearch(students, 0, numStudents - 1, idToSearch);
-
-                if (index != -1) {
-                    cout << "Student found: " << endl;
-                    cout << "ID: " << students[index].id << '\n';
-                    cout << "Name: " << students[index].name << '\n';
-                    // ... Print other details ...
-                }
-                else {
-                    cout << "Student not found." << endl;
-                }
-
-            } break;
-            case 2: {
-                cout << "Enter ID to search: ";
-                int idToSearch;
-                cin >> idToSearch;
-
-                int index = linearSearch(students, numStudents, idToSearch);
-
-                if (index != -1) {
-                    cout << "Student found: " << endl;
-                    cout << "ID: " << students[index].id << '\n';
-                    cout << "Name: " << students[index].name << '\n';
-                    // ... Print other details ...
-                }
-                else {
-                    cout << "Student not found." << endl;
-                }
-            } break;
-            default:
-                cout << "Invalid choice. Returning to main menu." << endl;
+            int index = -1;
+            if (searchChoice == 1) {
+                // Make sure students are sorted before binary search
+                quickSort(students, 0, students.size() - 1, swapCount);
+                index = binarySearch(students, 0, students.size() - 1, idToSearch);
             }
-        } break;
+            else if (searchChoice == 2) {
+                index = linearSearch(students, idToSearch);
+            }
+
+            if (index != -1) {
+                cout << "Student found: " << endl;
+                cout << "ID: " << students[index].id << '\n';
+                cout << "Name: " << students[index].name << '\n';
+                // ... Print other details ...
+            }
+            else {
+                cout << "Student not found." << endl;
+            }
+            break;
+        }
         default:
             cout << "Exiting Satria Management System." << endl;
         }
@@ -291,3 +302,4 @@ int main() {
 
     return 0;
 }
+
